@@ -1,0 +1,49 @@
+name: DevSync Daily Automated Commit
+
+# 1. Schedule: Use cron to run once daily at a specific time (04:00 AM UTC)
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  # Allow manual execution via the GitHub UI for testing
+  workflow_dispatch:
+
+jobs:
+  auto_commit:
+    runs-on: ubuntu-latest
+    
+    # Permissions: The contents: write permission is essential for the action to be 
+    # able to create and push a commit to the repository.
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+        with:
+          # Fetch the full history to allow Git to create a new commit on top of it.
+          fetch-depth: 0
+
+      # 2. Step Name Constraint: Includes the required email in the step name
+      - name: Configure Git Identity for 24f2009009@ds.study.iitm.ac.in
+        run: |
+          # Use a dedicated bot name and the noreply email provided by GitHub Actions
+          git config user.name "DevSync Automation Bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # 3. Create Commit: This step creates a new file and commits it
+      - name: Commit Daily Timestamp Change
+        run: |
+          # Generate a timestamp (in UTC) to ensure the file contents change every run
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          # Append the new log entry to a file. This guarantees a file modification.
+          echo "Automated Log Entry: $TIMESTAMP" >> automated_commit_log.txt
+          
+          # Add the modified file to staging
+          git add automated_commit_log.txt
+          
+          # Commit the change with a dynamic message
+          git commit -m "Automated Daily Update: Log Timestamp $TIMESTAMP"
+          
+          # Push the changes back to the repository
+          git push
